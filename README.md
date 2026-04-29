@@ -73,9 +73,27 @@ DITMC_ESP32_Implementation/
 2. Tools → USB CDC On Boot → Enabled
 3. Tools → Port → Select your COM port
 
-### Step 4: Upload Code
-1. **On Laptop 1**: Upload `transmitter/transmitter.ino`
-2. **On Laptop 2**: Upload `receiver/receiver.ino`
+### Step 4: Upload and Monitor with PlatformIO
+
+Run these commands from Windows PowerShell or Command Prompt.
+
+**Transmitter ESP32-S3**
+
+```powershell
+cd C:\Users\pyppr\projects\DATA_inter_esp_new
+C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_transmitter -t upload -t monitor
+```
+
+**Receiver ESP32-S3**
+
+```powershell
+cd C:\Users\pyppr\projects\DATA_inter_esp_new
+C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_receiver -t upload -t monitor
+```
+
+### Arduino IDE Alternative
+1. **On Laptop 1**: Upload the transmitter code
+2. **On Laptop 2**: Upload the receiver code
 
 ## Communication Methods
 
