@@ -1,16 +1,19 @@
 /*
  * DITMC Implementation for ESP32-S3 using PlatformIO
- * 
- * Based on: "Data Interleaving for Congestion Reduction in Mobile Traffic Transmission"
- * by Hemant Purohit et al.
- * 
- * Build with different environments:
- * - platformio run -e get_mac          (Get MAC address)
- * - platformio run -e esp32s3_transmitter (Build transmitter)
- * - platformio run -e esp32s3_receiver    (Build receiver)
  */
 
 #include <Arduino.h>
+
+// WORKAROUND: Define numeric values for modes
+#ifndef GET_MAC
+  #define GET_MAC 0
+#endif
+#ifndef TRANSMITTER  
+  #define TRANSMITTER 1
+#endif
+#ifndef RECEIVER
+  #define RECEIVER 2
+#endif
 
 // Include the appropriate module based on build flag
 #if DITMC_MODE == GET_MAC
@@ -24,7 +27,6 @@
 #endif
 
 void setup() {
-    // Call the appropriate setup based on mode
     #if DITMC_MODE == GET_MAC
         setup_get_mac();
     #elif DITMC_MODE == TRANSMITTER
@@ -35,7 +37,6 @@ void setup() {
 }
 
 void loop() {
-    // Call the appropriate loop based on mode
     #if DITMC_MODE == GET_MAC
         loop_get_mac();
     #elif DITMC_MODE == TRANSMITTER

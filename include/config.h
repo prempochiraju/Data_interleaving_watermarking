@@ -1,3 +1,4 @@
+#include <cstdint>
 #ifndef DITMC_CONFIG_H
 #define DITMC_CONFIG_H
 
@@ -7,12 +8,12 @@
 
 // IMPORTANT: Replace with your RECEIVER's MAC address!
 // Get it by uploading with env:get_mac first
-#define RECEIVER_MAC_0 0xFF
-#define RECEIVER_MAC_1 0xFF
-#define RECEIVER_MAC_2 0xFF
-#define RECEIVER_MAC_3 0xFF
-#define RECEIVER_MAC_4 0xFF
-#define RECEIVER_MAC_5 0xFF
+#define RECEIVER_MAC_0 0x10
+#define RECEIVER_MAC_1 0xB4
+#define RECEIVER_MAC_2 0x1D
+#define RECEIVER_MAC_3 0xEB
+#define RECEIVER_MAC_4 0x2D
+#define RECEIVER_MAC_5 0xA4
 
 // Create MAC array from defines
 uint8_t receiverMAC[] = {
