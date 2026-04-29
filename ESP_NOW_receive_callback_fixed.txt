@@ -1,0 +1,85 @@
+// ESP-NOW receive callback - FIXED VERSION
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
+    stats.packetsReceived++;
+
+    if (ENABLE_DEBUG) {
+        Serial.printf("\n📦 Packet received [#%lu]: %d bytes", stats.packetsReceived, data_len);
+    }
+
+    // Unpack the data manually (must match transmitter packing)
+    size_t offset = 0;
+
+    // Extract voiceDataSize first to know how much voice data to read
+    uint16_t voiceDataSize;
+    if (data_len < sizeof(uint16_t)) {
+        Serial.println(" [INVALID SIZE]");
+        return;
+    }
+
+    // The data is packed as: voiceData[], voiceDataSize, containsInterleavedData, timestamp
+    // But we need voiceDataSize to know where it starts
+    // Actually, let's recalculate: voiceDataSize is AFTER the voice data
+
+    // Since we don't know the size upfront, let's use data_len to work backwards
+    // Total size = voiceDataSize + sizeof(uint16_t) + sizeof(bool) + sizeof(uint16_t)
+    // So: voiceDataSize = data_len - 2 - 1 - 2 = data_len - 5
+
+    if (data_len < 5) {
+        Serial.println(" [TOO SHORT]");
+        return;
+    }
+
+    // Read from the end backwards
+    uint16_t timestamp;
+    memcpy(&timestamp, data + data_len - sizeof(uint16_t), sizeof(uint16_t));
+
+    bool containsInterleavedData;
+    memcpy(&containsInterleavedData, data + data_len - sizeof(uint16_t) - sizeof(bool), sizeof(bool));
+
+    memcpy(&voiceDataSize, data + data_len - sizeof(uint16_t) - sizeof(bool) - sizeof(uint16_t), sizeof(uint16_t));
+
+    if (voiceDataSize > MAX_PACKET_SIZE || voiceDataSize != (data_len - 5)) {
+        Serial.printf(" [SIZE MISMATCH: expected %d, got %d]\n", data_len - 5, voiceDataSize);
+        return;
+    }
+
+    // Now read the voice data
+    uint8_t voiceData[MAX_PACKET_SIZE];
+    memcpy(voiceData, data, voiceDataSize);
+
+    if (containsInterleavedData) {
+        Serial.print(" [INTERLEAVED]");
+    }
+    Serial.println();
+
+    // Process the packet
+    bool inDataMode = false;
+    uint16_t voiceBytes = 0;
+    uint16_t dataBytes = 0;
+
+    for (int i = 0; i < voiceDataSize; i++) {
+        if (voiceData[i] == BATTERY_OFF_CODE) {
+            inDataMode = true;
+            stats.batteryOffReceived++;
+            if (ENABLE_DEBUG) Serial.println("  → BATTERY OFF detected: Entering data mode");
+        }
+        else if (voiceData[i] == BATTERY_ON_CODE) {
+            inDataMode = false;
+            stats.batteryOnReceived++;
+            if (ENABLE_DEBUG) Serial.println("  → BATTERY ON detected: Returning to voice mode");
+        }
+        else {
+            if (inDataMode) {
+                dataBytes++;
+                stats.totalDataBytes++;
+            } else {
+                voiceBytes++;
+                stats.totalVoiceBytes++;
+            }
+        }
+    }
+
+    if (ENABLE_DEBUG && (voiceBytes > 0 || dataBytes > 0)) {
+        Serial.printf("  Voice: %d bytes | Data: %d bytes\n", voiceBytes, dataBytes);
+    }
+}
