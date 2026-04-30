@@ -40,6 +40,9 @@ uint8_t receiverMAC[] = {
 // The receiver uses this block to reset counters and align logs.
 static const uint8_t EXPERIMENT_SYNC_DATA[] = {'S', 'Y', 'N', 'C'};
 static const size_t EXPERIMENT_SYNC_DATA_LENGTH = sizeof(EXPERIMENT_SYNC_DATA);
+#define EXPERIMENT_SYNC_REPETITIONS 5
+#define EXPERIMENT_SYNC_DELAY_MS 500
+#define EXPERIMENT_START_DELAY_MS 3000
 
 // Battery Codes (Data markers)
 #define BATTERY_OFF_CODE 0xAA   // Marks start of interleaved data

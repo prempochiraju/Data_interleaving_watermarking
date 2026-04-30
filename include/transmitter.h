@@ -110,8 +110,23 @@ void sendExperimentSyncBlock() {
     sendPacket();
 
     if (ENABLE_DEBUG) {
-        Serial.println("Experiment sync block sent; receiver can align logs from this point.");
+        Serial.println("Experiment sync block sent.");
     }
+}
+
+void sendExperimentSyncBurst() {
+    Serial.println("Preparing experiment sync burst...");
+    delay(EXPERIMENT_START_DELAY_MS);
+
+    for (uint8_t i = 0; i < EXPERIMENT_SYNC_REPETITIONS; i++) {
+        Serial.printf("Sending experiment sync block %u/%u\n",
+                      (unsigned int)(i + 1),
+                      (unsigned int)EXPERIMENT_SYNC_REPETITIONS);
+        sendExperimentSyncBlock();
+        delay(EXPERIMENT_SYNC_DELAY_MS);
+    }
+
+    Serial.println("Experiment sync burst complete; receiver should reset counters.");
 }
 
 void resetTransmitterExperimentCounters() {
@@ -358,8 +373,7 @@ void setup_transmitter() {
     lastStatsTime = millis();
 
     Serial.println("Starting DITMC transmission with payload-level watermarking...\n");
-    sendExperimentSyncBlock();
-    delay(100);
+    sendExperimentSyncBurst();
     resetTransmitterExperimentCounters();
     digitalWrite(LED_PIN, HIGH);
 }

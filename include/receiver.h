@@ -44,6 +44,7 @@ uint8_t activeDataBlock[RECEPTION_BUFFER_SIZE];
 uint16_t activeDataBlockSize = 0;
 uint16_t activeDataBlockTimestamp = 0;
 bool experimentSynced = false;
+bool syncBlockJustHandled = false;
 
 static const uint16_t WATERMARKED_BLOCK_PAYLOAD_SIZE =
     INTERLEAVED_DATA_BLOCK_SIZE + WATERMARK_SIZE_BYTES;
@@ -63,6 +64,7 @@ void resetExperimentCounters() {
     activeDataBlockSize = 0;
     currentState = STATE_NORMAL_VOICE;
     experimentSynced = true;
+    syncBlockJustHandled = true;
     lastStatsTime = millis();
 
     Serial.println("\nExperiment sync received. Receiver counters reset for matched TX/RX logging.");
@@ -175,9 +177,10 @@ void processReceivedPacket(const DataPacket *packet) {
                 activeDataBlockSize >= WATERMARKED_BLOCK_PAYLOAD_SIZE) {
                 finalizeInterleavedDataBlock();
                 currentState = STATE_NORMAL_VOICE;
-                if (experimentSynced) {
+                if (experimentSynced && !syncBlockJustHandled) {
                     stats.batteryOnReceived++;
                 }
+                syncBlockJustHandled = false;
 
                 if (ENABLE_DEBUG) {
                     Serial.println("  BATTERY ON detected: returning to voice mode");
