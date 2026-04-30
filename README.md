@@ -66,3 +66,5 @@ Watermark overhead:          Y%
 ## More Notes
 
 Detailed setup notes that used to live at the repository root are now under [doc/guides](doc/guides). Start with [doc/PROJECT_STRUCTURE.md](doc/PROJECT_STRUCTURE.md) for a code map.
+
+For experiment capture, log both boards and plot the results using [doc/LOGGING_AND_PLOTTING.md](doc/LOGGING_AND_PLOTTING.md).
