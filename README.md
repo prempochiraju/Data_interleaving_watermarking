@@ -1,133 +1,68 @@
-# DITMC Implementation on ESP32-S3
+# DITMC ESP32-S3 Watermarking Project
 
-Implementation of "Data Interleaving for Congestion Reduction in Mobile Traffic Transmission" using two ESP32-S3 WROOM-1 modules.
+This PlatformIO project implements Data Interleaving Technique in Mobile Communication (DITMC) on two ESP32-S3 boards using ESP-NOW.
 
-## Project Overview
+One board runs as the transmitter and one board runs as the receiver. Voice bytes are sent normally until redundant/silent samples are detected. During that redundant region, the transmitter inserts DITMC data between `BATTERY_OFF_CODE` and `BATTERY_ON_CODE`.
 
-This project implements the Data Interleaving Technique in Mobile Communication (DITMC) using:
-- **Transmitter ESP32**: Simulates voice data transmission with interleaving
-- **Receiver ESP32**: Receives and reconstructs the interleaved data
+The current implementation adds lightweight payload-level watermarking inside that DITMC interleaved data region:
 
-### Key Concepts from the Paper
-- Detects repetition in voice bytes (≥4 repeated bytes)
-- Inserts data during redundant/silent periods
-- Uses Battery OFF/ON codes as markers
-- Achieves ~47% channel utilization enhancement
-
-## Hardware Requirements
-
-### Per ESP32-S3 Module
-- ESP32-S3 WROOM-1 development board
-- USB-C cable for programming/power
-- (Optional) LED for status indication
-- (Optional) Breadboard and jumper wires
-
-### Computers
-- Laptop 1: For programming/monitoring Transmitter ESP32
-- Laptop 2: For programming/monitoring Receiver ESP32
-
-## Software Requirements
-
-1. **Arduino IDE** (v2.0 or later) OR **PlatformIO**
-2. **ESP32 Board Support Package**
-3. **Required Libraries**:
-   - WiFi.h (built-in)
-   - esp_now.h (built-in for ESP-NOW)
-   - OR WiFi.h for WiFi-based communication
-
-## Project Structure
-
-```
-DITMC_ESP32_Implementation/
-├── README.md (this file)
-├── SETUP_GUIDE.md
-├── transmitter/
-│   ├── transmitter.ino
-│   └── config.h
-├── receiver/
-│   ├── receiver.ino
-│   └── config.h
-├── docs/
-│   └── DITMC_explanation.md
-└── test_data/
-    └── sample_voice_data.h
+```text
+BATTERY_OFF_CODE
+[interleaved data bytes]
+[4 CRC32 watermark bytes]
+BATTERY_ON_CODE
 ```
 
-## Quick Start
+The watermark is calculated from the interleaved data bytes, packet timestamp, and `SECRET_KEY` in [include/config.h](include/config.h).
 
-### Step 1: Install Arduino IDE
-1. Download from https://www.arduino.cc/en/software
-2. Install for your operating system
+## Project Layout
 
-### Step 2: Install ESP32 Board Support
-1. Open Arduino IDE → File → Preferences
-2. Add to "Additional Board Manager URLs":
-   ```
-   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-   ```
-3. Go to Tools → Board → Boards Manager
-4. Search "ESP32" and install "esp32 by Espressif Systems"
+```text
+.
+|-- platformio.ini              PlatformIO environments
+|-- README.md                   Project overview
+|-- ditmc_node/
+|   `-- main.cpp                Selects transmitter, receiver, or MAC utility
+|-- include/
+|   |-- config.h                MAC address, DITMC constants, secret key
+|   |-- packet_format.h         Shared payload metadata format
+|   |-- watermark.h             CRC32 watermark helpers
+|   |-- transmitter.h           Transmitter DITMC flow
+|   |-- receiver.h              Receiver DITMC flow and watermark checks
+|   `-- get_mac.h               MAC address utility
+`-- doc/
+    |-- PROJECT_STRUCTURE.md    Notes for understanding the code
+    |-- guides/                 Setup and quick-start notes
+    `-- *.html, *.md            Results and analysis artifacts
+```
 
-### Step 3: Select Board
-1. Tools → Board → ESP32 Arduino → ESP32S3 Dev Module
-2. Tools → USB CDC On Boot → Enabled
-3. Tools → Port → Select your COM port
+## Build
 
-### Step 4: Upload and Monitor with PlatformIO
-
-Run these commands from Windows PowerShell or Command Prompt.
-
-**Transmitter ESP32-S3**
+Use the receiver MAC printed by the receiver board and copy it into [include/config.h](include/config.h).
 
 ```powershell
-cd C:\Users\pyppr\projects\DATA_inter_esp_new
+C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e get_mac
+C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_transmitter
+C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_receiver
+```
+
+## Upload And Monitor
+
+```powershell
 C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_transmitter -t upload -t monitor
-```
-
-**Receiver ESP32-S3**
-
-```powershell
-cd C:\Users\pyppr\projects\DATA_inter_esp_new
 C:\Users\pyppr\.platformio\penv\Scripts\platformio.exe run -e esp32s3_receiver -t upload -t monitor
 ```
 
-### Arduino IDE Alternative
-1. **On Laptop 1**: Upload the transmitter code
-2. **On Laptop 2**: Upload the receiver code
+Expected receiver statistics include:
 
-## Communication Methods
+```text
+Watermark blocks received:   X
+Valid watermarks:            X
+Invalid watermarks:          0
+Watermark accuracy:          100.00%
+Watermark overhead:          Y%
+```
 
-This implementation supports two communication methods:
+## More Notes
 
-### Method 1: ESP-NOW (Recommended)
-- Direct peer-to-peer communication
-- No WiFi network required
-- Lower latency
-- Better for simulating GSM channel behavior
-
-### Method 2: WiFi UDP
-- Requires both ESP32s on same network
-- Good for testing over longer distances
-- Easier debugging with network tools
-
-## Next Steps
-
-1. Read `SETUP_GUIDE.md` for detailed setup
-2. Review `docs/DITMC_explanation.md` for algorithm details
-3. Upload and test with sample data
-4. Monitor Serial output for results
-
-## Expected Results
-
-Based on the paper:
-- **Channel Utilization**: 83.32% (up from 36%)
-- **Interleaving Percentage**: ~47.32%
-- **Overhead**: ~0.034%
-
-## Troubleshooting
-
-See `SETUP_GUIDE.md` Section 7 for common issues and solutions.
-
-## License
-
-This is an educational implementation of the research paper. Please cite the original authors if using for research purposes.
+Detailed setup notes that used to live at the repository root are now under [doc/guides](doc/guides). Start with [doc/PROJECT_STRUCTURE.md](doc/PROJECT_STRUCTURE.md) for a code map.

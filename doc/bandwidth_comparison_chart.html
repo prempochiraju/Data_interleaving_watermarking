@@ -1,0 +1,83 @@
+<h2 class="sr-only">Bar chart comparing baseline and DITMC bandwidth utilization showing 5.1% efficiency gain</h2>
+
+<div style="position: relative; width: 100%; height: 360px;">
+  <canvas id="bandwidthChart" role="img" aria-label="Bandwidth comparison chart showing baseline transmission at 54,201 bytes versus DITMC transmission at 56,965 bytes, representing a 5.1% efficiency gain">Baseline: 54,201 bytes. DITMC: 56,965 bytes with 54,201 voice, 2,764 data, 1,382 overhead.</canvas>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--color-text-secondary);">
+  <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #378ADD;"></span>Voice Data</span>
+  <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1D9E75;"></span>Interleaved Data (+5.1% gain)</span>
+  <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #BA7517;"></span>Protocol Overhead (2.37%)</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+new Chart(document.getElementById('bandwidthChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Baseline\n(No DITMC)', 'DITMC\n(Proposed)'],
+    datasets: [
+      {
+        label: 'Voice Data',
+        data: [54201, 54201],
+        backgroundColor: '#378ADD',
+        borderWidth: 0
+      },
+      {
+        label: 'Interleaved Data',
+        data: [0, 2764],
+        backgroundColor: '#1D9E75',
+        borderWidth: 0
+      },
+      {
+        label: 'Protocol Overhead',
+        data: [0, 1382],
+        backgroundColor: '#BA7517',
+        borderWidth: 0
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      title: {
+        display: true,
+        text: 'Bandwidth Utilization Comparison',
+        font: { size: 16, weight: '500' },
+        padding: { bottom: 20 }
+      },
+      tooltip: {
+        callbacks: {
+          footer: function(items) {
+            const total = items.reduce((sum, item) => sum + item.parsed.y, 0);
+            return 'Total: ' + total.toLocaleString() + ' bytes';
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false },
+        ticks: { font: { size: 13 } }
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Bytes Transmitted',
+          font: { size: 13 }
+        },
+        ticks: {
+          callback: function(value) {
+            return (value / 1000).toFixed(0) + 'K';
+          }
+        }
+      }
+    }
+  }
+});
+</script>

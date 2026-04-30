@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstddef>
 #ifndef DITMC_CONFIG_H
 #define DITMC_CONFIG_H
 
@@ -33,10 +34,18 @@ uint8_t receiverMAC[] = {
 #define REPETITION_THRESHOLD 4  // Minimum repetitions to trigger interleaving
 #define SAMPLE_BUFFER_SIZE 8    // Number of samples to accumulate
 #define MAX_PACKET_SIZE 250     // Maximum ESP-NOW packet size
+#define INTERLEAVED_DATA_BLOCK_SIZE 4 // Current DITMC demo data block length
 
 // Battery Codes (Data markers)
 #define BATTERY_OFF_CODE 0xAA   // Marks start of interleaved data
 #define BATTERY_ON_CODE  0x55   // Marks end of interleaved data
+
+// Payload-level watermarking.
+// Both transmitter and receiver must use the same key.
+static const uint8_t SECRET_KEY[] = {
+    'D', 'I', 'T', 'M', 'C', '_', 'W', 'M', '_', '2', '0', '2', '6'
+};
+static const size_t SECRET_KEY_LENGTH = sizeof(SECRET_KEY);
 
 // Debug Settings
 #define ENABLE_DEBUG true       // Enable detailed debug output
