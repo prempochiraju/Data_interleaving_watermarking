@@ -36,6 +36,11 @@ uint8_t receiverMAC[] = {
 #define MAX_PACKET_SIZE 250     // Maximum ESP-NOW packet size
 #define INTERLEAVED_DATA_BLOCK_SIZE 4 // Current DITMC demo data block length
 
+// First watermarked DITMC block sent at transmitter startup.
+// The receiver uses this block to reset counters and align logs.
+static const uint8_t EXPERIMENT_SYNC_DATA[] = {'S', 'Y', 'N', 'C'};
+static const size_t EXPERIMENT_SYNC_DATA_LENGTH = sizeof(EXPERIMENT_SYNC_DATA);
+
 // Battery Codes (Data markers)
 #define BATTERY_OFF_CODE 0xAA   // Marks start of interleaved data
 #define BATTERY_ON_CODE  0x55   // Marks end of interleaved data

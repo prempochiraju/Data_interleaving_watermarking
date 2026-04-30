@@ -22,6 +22,28 @@ Use the receiver laptop to log verification statistics:
 
 The receiver log is the main proof that watermarking worked, because the receiver recalculates the CRC32 watermark and reports whether it is valid.
 
+## Matching Transmitter And Receiver Logs
+
+Start the receiver first, then start the transmitter. The transmitter sends a first watermarked DITMC sync block:
+
+```text
+SYNC
+```
+
+When the receiver validates this sync block, it prints:
+
+```text
+Experiment sync received. Receiver counters reset for matched TX/RX logging.
+```
+
+The transmitter also resets its counters immediately after sending the sync block:
+
+```text
+Transmitter counters reset after sync; experiment totals start now.
+```
+
+Use the statistics after these two messages for matched graphs. This avoids counting old receiver output or idle receiver messages before the transmitter starts.
+
 ## Find COM Ports
 
 Run this on each laptop:

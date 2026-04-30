@@ -103,6 +103,29 @@ void appendWatermarkedInterleavedData(const uint8_t *interleavedData, size_t dat
     stats.watermarkBlocksSent++;
 }
 
+void sendExperimentSyncBlock() {
+    appendWatermarkedInterleavedData(EXPERIMENT_SYNC_DATA, EXPERIMENT_SYNC_DATA_LENGTH);
+    appendBatteryOnCode();
+    batteryOffTransmitted = false;
+    sendPacket();
+
+    if (ENABLE_DEBUG) {
+        Serial.println("Experiment sync block sent; receiver can align logs from this point.");
+    }
+}
+
+void resetTransmitterExperimentCounters() {
+    stats = {};
+    currentPacket.voiceDataSize = 0;
+    currentPacket.containsInterleavedData = 0;
+    currentPacket.timestamp = 0;
+    bufferIndex = 0;
+    batteryOffTransmitted = false;
+    lastStatsTime = millis();
+
+    Serial.println("Transmitter counters reset after sync; experiment totals start now.");
+}
+
 uint8_t generateVoiceSample() {
     static uint8_t lastValue = 128;
     static int repetitionCount = 0;
@@ -335,6 +358,9 @@ void setup_transmitter() {
     lastStatsTime = millis();
 
     Serial.println("Starting DITMC transmission with payload-level watermarking...\n");
+    sendExperimentSyncBlock();
+    delay(100);
+    resetTransmitterExperimentCounters();
     digitalWrite(LED_PIN, HIGH);
 }
 

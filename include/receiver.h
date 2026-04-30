@@ -43,6 +43,7 @@ uint16_t extractedDataSize = 0;
 uint8_t activeDataBlock[RECEPTION_BUFFER_SIZE];
 uint16_t activeDataBlockSize = 0;
 uint16_t activeDataBlockTimestamp = 0;
+bool experimentSynced = false;
 
 static const uint16_t WATERMARKED_BLOCK_PAYLOAD_SIZE =
     INTERLEAVED_DATA_BLOCK_SIZE + WATERMARK_SIZE_BYTES;
@@ -50,7 +51,28 @@ static const uint16_t WATERMARKED_BLOCK_PAYLOAD_SIZE =
 unsigned long lastStatsTime = 0;
 unsigned long lastPacketTime = 0;
 
+bool isExperimentSyncBlock(const uint8_t *data, uint16_t dataLength) {
+    return dataLength == EXPERIMENT_SYNC_DATA_LENGTH &&
+           memcmp(data, EXPERIMENT_SYNC_DATA, EXPERIMENT_SYNC_DATA_LENGTH) == 0;
+}
+
+void resetExperimentCounters() {
+    stats = {};
+    reconstructedVoiceSize = 0;
+    extractedDataSize = 0;
+    activeDataBlockSize = 0;
+    currentState = STATE_NORMAL_VOICE;
+    experimentSynced = true;
+    lastStatsTime = millis();
+
+    Serial.println("\nExperiment sync received. Receiver counters reset for matched TX/RX logging.");
+}
+
 void appendExtractedData(const uint8_t *data, uint16_t dataLength) {
+    if (!experimentSynced) {
+        return;
+    }
+
     for (uint16_t i = 0; i < dataLength; i++) {
         if (extractedDataSize < RECEPTION_BUFFER_SIZE) {
             extractedData[extractedDataSize++] = data[i];
@@ -74,6 +96,17 @@ void finalizeInterleavedDataBlock() {
     uint32_t receivedWatermark = readWatermarkBytes(activeDataBlock + dataLength);
     uint32_t calculatedWatermark = calculateWatermark(activeDataBlock, dataLength, activeDataBlockTimestamp);
 
+    if (receivedWatermark == calculatedWatermark &&
+        isExperimentSyncBlock(activeDataBlock, dataLength)) {
+        resetExperimentCounters();
+        return;
+    }
+
+    if (!experimentSynced) {
+        activeDataBlockSize = 0;
+        return;
+    }
+
     appendExtractedData(activeDataBlock, dataLength);
 
     stats.watermarkBlocksReceived++;
@@ -95,8 +128,10 @@ void finalizeInterleavedDataBlock() {
 }
 
 void processReceivedPacket(const DataPacket *packet) {
-    stats.totalPacketsReceived++;
-    stats.lastPacketTimestamp = packet->timestamp;
+    if (experimentSynced) {
+        stats.totalPacketsReceived++;
+        stats.lastPacketTimestamp = packet->timestamp;
+    }
 
     if (ENABLE_DEBUG) {
         Serial.printf("\nPacket received [#%lu]: %u payload bytes",
@@ -111,11 +146,13 @@ void processReceivedPacket(const DataPacket *packet) {
         uint8_t byte = packet->voiceData[i];
 
         if (currentState == STATE_NORMAL_VOICE) {
-            if (byte == BATTERY_OFF_CODE) {
+            if (packet->containsInterleavedData && byte == BATTERY_OFF_CODE) {
                 currentState = STATE_INTERLEAVED_DATA;
                 activeDataBlockSize = 0;
                 activeDataBlockTimestamp = packet->timestamp;
-                stats.batteryOffReceived++;
+                if (experimentSynced) {
+                    stats.batteryOffReceived++;
+                }
 
                 if (ENABLE_DEBUG) {
                     Serial.println("  BATTERY OFF detected: entering data mode");
@@ -125,8 +162,10 @@ void processReceivedPacket(const DataPacket *packet) {
 
             if (reconstructedVoiceSize < RECEPTION_BUFFER_SIZE) {
                 reconstructedVoice[reconstructedVoiceSize++] = byte;
-                stats.totalVoiceBytes++;
-                stats.reconstructedVoiceBytes++;
+                if (experimentSynced) {
+                    stats.totalVoiceBytes++;
+                    stats.reconstructedVoiceBytes++;
+                }
             }
         } else {
             // The CRC32 watermark can contain marker-like byte values. Because the
@@ -136,7 +175,9 @@ void processReceivedPacket(const DataPacket *packet) {
                 activeDataBlockSize >= WATERMARKED_BLOCK_PAYLOAD_SIZE) {
                 finalizeInterleavedDataBlock();
                 currentState = STATE_NORMAL_VOICE;
-                stats.batteryOnReceived++;
+                if (experimentSynced) {
+                    stats.batteryOnReceived++;
+                }
 
                 if (ENABLE_DEBUG) {
                     Serial.println("  BATTERY ON detected: returning to voice mode");
@@ -279,15 +320,17 @@ void loop_receiver() {
     unsigned long currentTime = millis();
 
     if (currentTime - lastStatsTime >= STATS_INTERVAL) {
-        if (stats.totalPacketsReceived > 0) {
+        if (experimentSynced && stats.totalPacketsReceived > 0) {
             displayStatistics();
+        } else if (!experimentSynced) {
+            Serial.println("Waiting for transmitter experiment sync...");
         } else {
             Serial.println("No packets received yet...");
         }
         lastStatsTime = currentTime;
     }
 
-    if (stats.totalPacketsReceived > 0 &&
+    if (experimentSynced && stats.totalPacketsReceived > 0 &&
         (currentTime - lastPacketTime > 10000)) {
         Serial.println("\nNo packets received for 10 seconds");
         Serial.println("Check transmitter status\n");
